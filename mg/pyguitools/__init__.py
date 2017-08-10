@@ -14,4 +14,4 @@ from __future__ import absolute_import
 from .Log import QtDockLog
 from .gui_save_and_load import gui_save, gui_restore
 from .plot_window import SimplePlotWindow
-from .easy_edit_settings import easy_edit_settings
+from .easy_settings import EasyEditSettings

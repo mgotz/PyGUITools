@@ -6,7 +6,7 @@ easily editable settings: wrapper around formlayout
 
 from formlayout import fedit
 
-class easy_edit_settings():
+class EasyEditSettings():
     """a class around formlayout to give easy to use settings
     
     initalized with a list of tuples that specifiy the settings it can return
