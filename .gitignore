@@ -1,2 +1,6 @@
 #all python byte code
 *.pyc
+#build and setup stuff
+build
+dist
+*.egg-info
