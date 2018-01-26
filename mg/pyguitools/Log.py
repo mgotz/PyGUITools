@@ -8,10 +8,44 @@ usage:
     from MyGui import Log
     Log.run()
 """
-
-from PyQt4 import QtCore, QtGui
+#get compatible to python3
+from __future__ import absolute_import, division, print_function
 
 import os
+
+#enable compatibility to both pyqt4 and pyqt5
+_modname = os.environ.setdefault('QT_API', 'pyqt')
+assert _modname in ('pyqt', 'pyqt5')
+
+if os.environ['QT_API'].startswith('pyqt'):
+    try:
+        if os.environ['QT_API'] == 'pyqt5':
+            from PyQt5.QtWidgets import (QApplication, QDockWidget, QFileDialog,
+                                         QMainWindow)
+            
+            ### import ui created with qtdesigner
+            ### create python file with: 
+            ### pyuic5 Log.ui > ui_Log_qt5.py
+            from ui_Log_qt5 import Ui_DockWidget
+
+            from PyQt5 import QtCore
+
+        else:
+            from PyQt4.QtGui import (QApplication, QDockWidget, QFileDialog,
+                                         QMainWindow) 
+            
+            ### import ui created with qtdesigner
+            ### create python file with: 
+            ### pyuic4 Log.ui > ui_Log_qt4.py
+            from ui_Log_qt4 import Ui_DockWidget
+            
+            from PyQt4 import QtCore
+    except ImportError as e:
+        print (e)
+        raise ImportError("GUI Logger requires PyQt4 or PyQt5. " 
+                          "QT_API: {!s}".format(os.environ['QT_API']))
+
+
 import logging
 
 
@@ -79,7 +113,7 @@ class LogHandler(logging.Handler):
             self.logSig.emit_log(text)
         ### otherwise just print log message
         else:
-            print text
+            print(text)
 
 
 class LogFormat(logging.Formatter):
@@ -99,59 +133,40 @@ class LogFormat(logging.Formatter):
 #    err_fmt  = "[ERROR] %(module)s:%(funcName)s >> %(msg)s"
 #My Formattes (prints just the messages):
 #   
-    dbg_fmt  = "[DEBUG]%(asctime)s %(msg)s"
-    info_fmt = "[INFO]%(asctime)s %(msg)s"
-    warn_fmt = "[WARNING]%(asctime)s %(msg)s"
-    err_fmt  = "[ERROR]%(asctime)s %(msg)s"
-    crit_fmt = "[CRITICAL]%(asctime)s %(msg)s"
+    level_translation = {"10: ":"[DEBUG] ", 
+                         "20: ":"[INFO] ", 
+                         "30: ":"[WARNING] ",
+                         "40: ":"ERROR ",
+                         "50: ":"CRITICAL "}
     datefmt = ""
 
-    def __init__(self, fmt="%(levelno)s: %(msg)s",datefmt=None,infoString=True):
+    def __init__(self, fmt="%(levelno)s: %(asctime)s %(msg)s", datefmt=None,
+                 infoString=True):
         logging.Formatter.__init__(self, fmt,datefmt)
         self.datefmt = datefmt
+
         
         if not infoString:
-            self.info_fmt = "%(asctime)s %(msg)s"
+            self.level_tranlsation["20: "] = ""
+ #           self.info_fmt = "%(asctime)s %(msg)s"
 
     def format(self, record):
-
-        # Save the original format configured by the user
-        # when the logger formatter was instantiated
-        format_orig = self._fmt
-
-        # Replace the original format with one customized by logging level
-        if record.levelno == 10:   # DEBUG
-            self._fmt = self.dbg_fmt
-
-        elif record.levelno == 20: # INFO
-            self._fmt = self.info_fmt
-
-        elif record.levelno == 30: # WARNING
-            self._fmt = self.warn_fmt
-
-        elif record.levelno == 40: # ERROR
-            self._fmt = self.err_fmt
-            
-        elif record.levelno == 50: # CRITICAL
-            self._fmt = self.crit_fmt
-
-
-        # Call the original formatter class to do the grunt work
+        # Call the base class formatter to do the grunt work
         result = logging.Formatter.format(self, record)
+        
+        #replace the numeric logging levels with strings
+        result = self.level_translation[result[0:4]] + result[4:]
+        
 
-        # Restore the original format configured by the user
-        self._fmt = format_orig
+
+
 
         return result
     
         
         
-### import ui created with qtdesigner
-### create python file with: 
-### pyuic4 Log.ui > ui_Log.py
-from ui_Log import Ui_DockWidget
 
-class QtDockLog(QtGui.QDockWidget):
+class QtDockLog(QDockWidget):
     """
     Log Dock Widget to use in a PyQt GUI 
     Will output all the logging.info(), logging.debug() etc. info
@@ -181,7 +196,7 @@ class QtDockLog(QtGui.QDockWidget):
             if false info messages are not prefixed with the log level string
         """
         
-        QtGui.QDockWidget.__init__(self)
+        QDockWidget.__init__(self)
         
         # Set up the user interface from Designer.
         self.ui =  Ui_DockWidget()
@@ -213,12 +228,16 @@ class QtDockLog(QtGui.QDockWidget):
                         lambda: self.setLevel(self.ui.comboBox.currentText()))
         self.ui.pushButtonSave.clicked.connect(self.saveLog) 
 
-
     def saveLog(self):
         """
         Saves the shown log to file 'filename'
         """
-        savePath =QtGui.QFileDialog.getSaveFileName(self,'select save file')
+        savePath =QFileDialog.getSaveFileName(self,caption='select save file',
+                                              filter="Text files (*.txt);;All files (*)")
+        #in pyqt5 a tuple is returned, unpack it
+        if os.environ['QT_API'] == 'pyqt5':
+            savePath, _ = savePath
+            
         if savePath != '':
             text = str(self.ui.textBrowser.toPlainText())   # get log text 
             f = open(savePath, 'w')                   # open file
@@ -236,29 +255,28 @@ class QtDockLog(QtGui.QDockWidget):
         # clear the text window
         self.ui.textBrowser.clear()
         # open the log file
-        f = open(self.filename, 'r')
-        # go through lines in log file
-        for line in f:
-            line = line.strip()                      # delete end of line
-            try:
-                level_line = line.split('[')[1].split(']')[0]      # get level of line
-            except IndexError:
-                level_line = "INFO"                                 #default to info
-                
-            level_line_int = eval("logging.%s" %(level_line))
-            # if number of line level is greater equal to number of 
-            #  the global level, append to text in color
-            if level_line_int >= level_int:
-                text = "<font color='%s'> %s </font>" \
-                            % ( self.handler.COLORS[level_line], line)
-                self.ui.textBrowser.append(text)
-        # close file        
-        f.close()
+        with open(self.filename, 'r') as f:
+            # go through lines in log file
+            for line in f:
+                line = line.strip()                      # delete end of line
+                try:
+                    level_line = line.split('[')[1].split(']')[0]      # get level of line
+                except IndexError:
+                    level_line = "INFO"                                 #default to info
+                    
+                level_line_int = eval("logging.%s" %(level_line))
+                # if number of line level is greater equal to number of 
+                #  the global level, append to text in color
+                if level_line_int >= level_int:
+                    text = "<font color='%s'> %s </font>" \
+                                % ( self.handler.COLORS[level_line], line)
+                    self.ui.textBrowser.append(text)
               
         cmd = "self.handler.setLevel(logging.%s)" % (level)
         eval(cmd)
         ### print new level
         self.logger.debug("Logging level set to %s." %(level))
+
         
     ### pyQt SLOT used to receive emitted SIGNAL from LogHandler()
     ### pass self to LogHandler to make this work   
@@ -271,8 +289,8 @@ class QtDockLog(QtGui.QDockWidget):
 def run():
     import sys
     
-    app = QtGui.QApplication(sys.argv)
-    win = QtGui.QMainWindow()
+    app = QApplication(sys.argv)
+    win = QMainWindow()
     win.addDockWidget(QtCore.Qt.TopDockWidgetArea, QtDockLog())
     win.show()
     sys.exit(app.exec_())

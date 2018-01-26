@@ -4,7 +4,28 @@
 functions to save and restore pyqt gui contents
 """
 
-from PyQt4 import QtGui
+#get compatible to python3
+from __future__ import absolute_import, division, print_function
+from builtins import str #use instead of pyhton2 unicode()
+
+import os
+
+#enable compatibility to both pyqt4 and pyqt5
+_modname = os.environ.setdefault('QT_API', 'pyqt')
+assert _modname in ('pyqt', 'pyqt5')
+
+if os.environ['QT_API'].startswith('pyqt'):
+    try:
+        if os.environ['QT_API'] == 'pyqt5':
+            from PyQt5.QtWidgets import (QComboBox, QLineEdit, QCheckBox, 
+                                         QSpinBox, QDoubleSpinBox)
+        else:
+            from PyQt4.QtGui import (QComboBox, QLineEdit, QCheckBox, 
+                                         QSpinBox, QDoubleSpinBox)
+    except ImportError:
+        raise ImportError("plot_window requires PyQt4 or PyQt5. " 
+                          "QT_API: {!s}".format(os.environ['QT_API']))
+
 import inspect
 
 def gui_save(ui, settings):
@@ -25,20 +46,20 @@ def gui_save(ui, settings):
     #get all the children of the ui
     for name, obj in inspect.getmembers(ui):
         #different fields need slightly different things to be saved
-        if isinstance(obj, QtGui.QComboBox):
+        if isinstance(obj, QComboBox):
             name   = obj.objectName()      # get combobox name
             index  = obj.currentIndex()    # get current index from combobox
             text   = obj.itemText(index)   # get the text for current index
             settings.setValue(name, text)   # save combobox selection to settings
-        if isinstance(obj, QtGui.QLineEdit):
+        if isinstance(obj, QLineEdit):
             name = obj.objectName()
             value = str(obj.text())
             settings.setValue(name, value)
-        if isinstance(obj, QtGui.QCheckBox):
+        if isinstance(obj, QCheckBox):
             name = obj.objectName()
             state = obj.checkState()
             settings.setValue(name, state)
-        if isinstance(obj, QtGui.QSpinBox) or isinstance(obj, QtGui.QDoubleSpinBox):
+        if isinstance(obj, QSpinBox) or isinstance(obj, QDoubleSpinBox):
             name = obj.objectName()
             value = obj.value()
             settings.setValue(name,value)
@@ -60,9 +81,9 @@ def gui_restore(ui, settings):
     
     #iterate over the child items and try to load something for each item
     for name, obj in inspect.getmembers(ui):
-        if isinstance(obj, QtGui.QComboBox):
+        if isinstance(obj, QComboBox):
             name   = obj.objectName()
-            value = unicode(settings.value(name))  
+            value = str(settings.value(name))  
 
             if value == "":
                 continue
@@ -76,16 +97,16 @@ def gui_restore(ui, settings):
             else:
                 obj.setCurrentIndex(index)   # set the correct index otherwise
 
-        if isinstance(obj, QtGui.QLineEdit):
+        if isinstance(obj, QLineEdit):
             name = obj.objectName()
             try:
                 value = settings.value(name,type=str)  # get stored value from registry
             except TypeError:
                 value = None
             if value != None:
-                obj.setText(unicode(value))  # restore lineEditFile
+                obj.setText(str(value))  # restore lineEditFile
 
-        if isinstance(obj, QtGui.QCheckBox):
+        if isinstance(obj, QCheckBox):
             name = obj.objectName()
             try:
                 value = settings.value(name,type=bool)   # get stored value from registry
@@ -94,7 +115,7 @@ def gui_restore(ui, settings):
             if value != None:
                 obj.setChecked(value)   # restore checkbox
                 
-        if isinstance(obj, QtGui.QSpinBox):
+        if isinstance(obj, QSpinBox):
             name = obj.objectName()
             try:
                 value = settings.value(name,type=int)
@@ -103,7 +124,7 @@ def gui_restore(ui, settings):
             if value != None:
                 obj.setValue(value)
 
-        if isinstance(obj, QtGui.QDoubleSpinBox):
+        if isinstance(obj, QDoubleSpinBox):
             name = obj.objectName()
             try:
                 value = settings.value(name,type=float)
