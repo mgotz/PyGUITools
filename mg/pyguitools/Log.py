@@ -26,7 +26,7 @@ if os.environ['QT_API'].startswith('pyqt'):
             ### import ui created with qtdesigner
             ### create python file with: 
             ### pyuic5 Log.ui > ui_Log_qt5.py
-            from ui_Log_qt5 import Ui_DockWidget
+            from .ui_Log_qt5 import Ui_DockWidget
 
             from PyQt5 import QtCore
 
@@ -37,7 +37,7 @@ if os.environ['QT_API'].startswith('pyqt'):
             ### import ui created with qtdesigner
             ### create python file with: 
             ### pyuic4 Log.ui > ui_Log_qt4.py
-            from ui_Log_qt4 import Ui_DockWidget
+            from .ui_Log_qt4 import Ui_DockWidget
             
             from PyQt4 import QtCore
     except ImportError as e:
@@ -147,7 +147,7 @@ class LogFormat(logging.Formatter):
 
         
         if not infoString:
-            self.level_tranlsation["20: "] = ""
+            self.level_translation["20: "] = ""
  #           self.info_fmt = "%(asctime)s %(msg)s"
 
     def format(self, record):

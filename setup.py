@@ -12,7 +12,7 @@ def read(fname):
 
 setup(
     name='mg_pyguitools',
-    version='1.1.0',
+    version='1.1.1',
     
     packages=find_packages(), #automagically include all subfolders as packages
     
@@ -23,5 +23,5 @@ setup(
     author_email='malte.gotz@oncoray.de',
     url='https://github.com/mgotz/PyGUITools',
     
-    install_requires=['matplotlib','formlayout']
+    install_requires=['matplotlib','formlayout','future']
 )
